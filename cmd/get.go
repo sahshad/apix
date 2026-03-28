@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"apix/internal/cli"
-	"apix/internal/types"
+	"github.com/sahshad/apix/internal/cli"
+	"github.com/sahshad/apix/internal/types"
 	"fmt"
 	"github.com/spf13/cobra"
 	"net/url"

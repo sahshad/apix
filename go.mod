@@ -1,4 +1,4 @@
-module apix
+module github.com/sahshad/apix
 
 go 1.25.0
 

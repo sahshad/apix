@@ -1,8 +1,8 @@
 package cli
 
 import (
-	"apix/internal/client"
-	"apix/internal/config"
+	"github.com/sahshad/apix/internal/client"
+	"github.com/sahshad/apix/internal/config"
 	"fmt"
 	"os"
 )

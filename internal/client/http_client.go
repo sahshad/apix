@@ -1,8 +1,8 @@
 package client
 
 import (
-	"apix/internal/config"
-	"apix/internal/types"
+	"github.com/sahshad/apix/internal/config"
+	"github.com/sahshad/apix/internal/types"
 	"bytes"
 	"crypto/tls"
 	"io"
