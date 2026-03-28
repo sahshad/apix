@@ -48,7 +48,7 @@ apix/
 ### Using Go
 
 ```bash
-go install github.com/your-username/apix@latest
+go install github.com/sahshad/apix@latest
 ```
 
 Make sure `$GOPATH/bin` is in your PATH.
@@ -57,7 +57,7 @@ Make sure `$GOPATH/bin` is in your PATH.
 
 ## 🚀 Usage
 
-### Basic request
+### GET request
 
 ```bash
 apix get https://api.example.com/users
