@@ -1,12 +1,11 @@
 package cmd
 
 import (
+	"apix/internal/cli"
 	"apix/internal/config"
 	"fmt"
-	"strings"
-
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+	"strings"
 )
 
 var envCmd = &cobra.Command{
@@ -18,11 +17,25 @@ var envListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List available environments",
 	Run: func(cmd *cobra.Command, args []string) {
-		// For simplicity, hardcoded example
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			cli.Error("Failed to load config:", err)
+			return
+		}
+
+		if len(cfg.Environments) == 0 {
+			cli.Warning("No environments configured.")
+			return
+		}
+
 		fmt.Println("Available environments:")
-		fmt.Println("- default (https://api.example.com)")
-		fmt.Println("- staging (https://staging.api.example.com)")
-		fmt.Println("- dev (https://dev.api.example.com)")
+		for name, url := range cfg.Environments {
+			if name == cfg.CurrentEnv {
+				fmt.Println("→", name, "(", url, ")")
+			} else {
+				fmt.Println("-", name, "(", url, ")")
+			}
+		}
 	},
 }
 
@@ -32,50 +45,102 @@ var envUseCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		envName := args[0]
-		cfg, _ := config.LoadConfig()
 
-		switch envName {
-		case "default":
-			cfg.BaseURL = "https://api.example.com"
-		case "staging":
-			cfg.BaseURL = "https://staging.api.example.com"
-		case "dev":
-			cfg.BaseURL = "https://dev.api.example.com"
-		default:
-			fmt.Println("Unknown environment:", envName)
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			cli.Error("Failed to load config:", err)
 			return
 		}
 
-		config.SaveConfig(cfg)
-		fmt.Printf("Switched to environment: %s\n", envName)
+		url, ok := cfg.Environments[envName]
+		if !ok {
+			cli.Error("Environment not found:", envName)
+			return
+		}
+
+		cfg.CurrentEnv = envName
+		cfg.BaseURL = url
+
+		if err := config.SaveConfig(cfg); err != nil {
+			cli.Error("Failed to save config:", err)
+			return
+		}
+
+		cli.Success("Switched to environment:", envName)
 	},
 }
 
 var envSetCmd = &cobra.Command{
-	Use:   "set [KEY=VALUE]",
-	Short: "Set environment variable",
+	Use:   "set NAME=URL",
+	Short: "Add or update an environment",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		kv := args[0]
-		cfg, _ := config.LoadConfig()
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			cli.Error("Failed to load config:", err)
+			return
+		}
 
-		parts := strings.SplitN(kv, "=", 2)
+		if cfg.Environments == nil {
+			cfg.Environments = make(map[string]string)
+		}
+
+		parts := strings.SplitN(args[0], "=", 2)
 		if len(parts) != 2 {
-			color.Red("Invalid format. Use KEY=VALUE")
+			cli.Error("Invalid format. Use NAME=URL")
 			return
 		}
-		key := parts[0]
-		value := parts[1]
 
-		switch key {
-		case "API_URL":
-			cfg.BaseURL = value
-		default:
-			fmt.Println("Unknown key:", key)
+		name := strings.TrimSpace(parts[0])
+		url := strings.TrimSpace(parts[1])
+
+		if name == "" || url == "" {
+			cli.Error("Name and URL cannot be empty")
 			return
 		}
-		config.SaveConfig(cfg)
-		fmt.Println("Environment variable set:", kv)
+
+		cfg.Environments[name] = url
+
+		if err := config.SaveConfig(cfg); err != nil {
+			cli.Error("Failed to save config:", err)
+			return
+		}
+
+		cli.Success("Environment saved:", name)
+	},
+}
+
+var envDeleteCmd = &cobra.Command{
+	Use:   "delete [environment]",
+	Short: "Delete an environment",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		envName := args[0]
+
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			cli.Error("Failed to load config:", err)
+			return
+		}
+
+		if _, ok := cfg.Environments[envName]; !ok {
+			cli.Warning("Environment not found:", envName)
+			return
+		}
+
+		delete(cfg.Environments, envName)
+
+		if cfg.CurrentEnv == envName {
+			cfg.CurrentEnv = ""
+			cfg.BaseURL = ""
+		}
+
+		if err := config.SaveConfig(cfg); err != nil {
+			cli.Error("Failed to save config:", err)
+			return
+		}
+
+		cli.Success("Environment deleted:", envName)
 	},
 }
 
@@ -83,4 +148,5 @@ func init() {
 	envCmd.AddCommand(envListCmd)
 	envCmd.AddCommand(envUseCmd)
 	envCmd.AddCommand(envSetCmd)
+	envCmd.AddCommand(envDeleteCmd)
 }

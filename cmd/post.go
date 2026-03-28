@@ -1,44 +1,63 @@
 package cmd
 
 import (
-	"apix/internal/client"
+	"apix/internal/cli"
+	"apix/internal/types"
 	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
+	"os"
 )
 
-var data string
-var file string
+type PostCmdOptions struct {
+	Data   string
+	File   string
+	Pretty bool
+}
+
+var postOpts PostCmdOptions
 
 var postCmd = &cobra.Command{
-    Use:   "post [endpoint]",
-    Short: "POST data to API",
-    Args:  cobra.ExactArgs(1),
-    Run: func(cmd *cobra.Command, args []string) {
-        endpoint := args[0]
+	Use:   "post [endpoint]",
+	Short: "POST data to API",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		endpoint := args[0]
 
-        payload := data
-        if file != "" {
-            content, err := os.ReadFile(file)
-            if err != nil {
-                fmt.Println("Error reading file:", err)
-                return
-            }
-            payload = string(content)
-        }
+		payload := postOpts.Data
+		if postOpts.File != "" {
+			content, err := os.ReadFile(postOpts.File)
+			if err != nil {
+				fmt.Println("Error reading file:", err)
+				return
+			}
+			payload = string(content)
+		}
 
-        resp, err := client.Post(endpoint, payload)
-        if err != nil {
-            fmt.Println("Error:", err)
-            return
-        }
+		client := cli.GetClient()
 
-        fmt.Println(string(resp))
-    },
+		res, err := client.Post(endpoint, payload)
+		if err != nil {
+			cli.Error("Request failed:", err)
+			return
+		}
+
+		responseParams := types.ResponseParams{
+			Method:      "GET",
+			Endpoint:    endpoint,
+			Status:      res.StatusCode,
+			ContentType: res.Headers.Get("Content-Type"),
+			Body:        string(res.Body),
+			Duration:    res.DurationMs,
+			Size:        cli.FormatSize(res.Size),
+			Timing:      res.Timing,
+		}
+
+		cli.RenderResponse(responseParams, verbose)
+
+	},
 }
 
 func init() {
-    postCmd.Flags().StringVarP(&data, "data", "d", "", "JSON payload")
-    postCmd.Flags().StringVarP(&file, "file", "f", "", "Payload from file")
+	postCmd.Flags().StringVarP(&postOpts.Data, "data", "d", "", "JSON payload")
+	postCmd.Flags().StringVarP(&postOpts.File, "file", "f", "", "Payload from file")
 }

@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"apix/internal/cli"
 	"apix/internal/config"
 	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -16,18 +16,29 @@ var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Login and save API token",
 	Run: func(cmd *cobra.Command, args []string) {
-		var token string
 		fmt.Print("Enter API token: ")
-		fmt.Scanln(&token)
 
-		cfg, _ := config.LoadConfig()
-		cfg.AuthToken = token
-		err := config.SaveConfig(cfg)
-		if err != nil {
-			fmt.Println("Error saving token:", err)
+		var token string
+		fmt.Scanln(&token)
+		if token == "" {
+			cli.Error("Token cannot be empty.")
 			return
 		}
-		fmt.Println("Token saved successfully.")
+
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			cli.Error("Failed to load config:", err)
+			return
+		}
+
+		cfg.AuthToken = token
+
+		if err := config.SaveConfig(cfg); err != nil {
+			cli.Error("Error saving token:", err)
+			return
+		}
+
+		cli.Success("Token saved successfully.")
 	},
 }
 
@@ -35,10 +46,24 @@ var logoutCmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Remove saved API token",
 	Run: func(cmd *cobra.Command, args []string) {
-		cfg, _ := config.LoadConfig()
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			cli.Error("Failed to load config:", err)
+			return
+		}
+
+		if cfg.AuthToken == "" {
+			cli.Warning("No token is currently set.")
+			return
+		}
+
 		cfg.AuthToken = ""
-		config.SaveConfig(cfg)
-		fmt.Println("Token removed.")
+
+		if err := config.SaveConfig(cfg); err != nil {
+			cli.Error("Failed to remove token:", err)
+			return
+		}
+		cli.Success("Token removed.")
 	},
 }
 
@@ -46,11 +71,16 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show current auth token status",
 	Run: func(cmd *cobra.Command, args []string) {
-		cfg, _ := config.LoadConfig()
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			cli.Error("Failed to load config:", err)
+			return
+		}
+
 		if cfg.AuthToken != "" {
-			fmt.Println("Token is set.")
+			cli.Success("Token is set.")
 		} else {
-			fmt.Println("No token set.")
+			cli.Warning("No token set.")
 		}
 	},
 }
