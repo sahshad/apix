@@ -1,9 +1,10 @@
 package cli
 
 import (
-	"github.com/sahshad/apix/internal/types"
 	"fmt"
 	"strings"
+
+	"github.com/sahshad/apix/internal/types"
 )
 
 func RenderResponse(params types.ResponseParams, verbose bool) {
@@ -53,4 +54,17 @@ func RenderResponse(params types.ResponseParams, verbose bool) {
 
 func printKV(key, value string) {
 	fmt.Printf("  %-10s %s\n", Muted(key), value)
+}
+
+func BuildResponseParams(method string, endpoint string, res *types.Response) types.ResponseParams {
+	return types.ResponseParams{
+		Method:      method,
+		Endpoint:    endpoint,
+		Status:      res.StatusCode,
+		ContentType: res.Headers.Get("Content-Type"),
+		Body:        string(res.Body),
+		Duration:    res.DurationMs,
+		Size:        FormatSize(res.Size),
+		Timing:      res.Timing,
+	}
 }

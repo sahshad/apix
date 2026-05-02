@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"github.com/sahshad/apix/internal/cli"
-	"github.com/sahshad/apix/internal/types"
 	"fmt"
+	"github.com/sahshad/apix/internal/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +17,10 @@ var deleteCmd = &cobra.Command{
 	Short: "DELETE resource from API",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+
+		method := "DELETE"
 		endpoint := args[0]
+		client := cli.GetClient()
 
 		if !deleteOpts.Force {
 			var confirm string
@@ -31,25 +33,14 @@ var deleteCmd = &cobra.Command{
 			}
 		}
 
-		c := cli.GetClient()
-
-		res, err := c.Delete(endpoint)
+		res, err := client.Delete(endpoint)
 		if err != nil {
 			cli.Error("Request failed:", err)
 			return
 		}
 
-		responseParams := types.ResponseParams{
-			Method:      "GET",
-			Endpoint:    endpoint,
-			Status:      res.StatusCode,
-			ContentType: res.Headers.Get("Content-Type"),
-			Body:        string(res.Body),
-			Duration:    res.DurationMs,
-			Size:        cli.FormatSize(res.Size),
-		}
-
-		cli.RenderResponse(responseParams, verbose)
+		resParams := cli.BuildResponseParams(method, endpoint, res)
+		cli.RenderResponse(resParams, verbose)
 	},
 }
 

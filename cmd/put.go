@@ -2,30 +2,31 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/sahshad/apix/internal/cli"
 	"github.com/spf13/cobra"
-	"os"
 )
 
-type PostCmdOptions struct {
+type PutCmdOptions struct {
 	Data      string
 	File      string
 	FormFiles []string
 }
 
-var postOpts PostCmdOptions
+var putOpts PutCmdOptions
 
-var postCmd = &cobra.Command{
-	Use:   "post [endpoint]",
-	Short: "POST data to API",
+var putCmd = &cobra.Command{
+	Use:   "put [endpoint]",
+	Short: "PUT Data to API",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		method := "POST"
+		method := "PUT"
 		endpoint := args[0]
 		client := cli.GetClient()
 
-		if len(postOpts.FormFiles) > 0 {
+		if len(putOpts.FormFiles) > 0 {
 			res, err := client.Multipart(method, endpoint, postOpts.FormFiles)
 			if err != nil {
 				cli.Error("Request failed:", err)
@@ -37,9 +38,9 @@ var postCmd = &cobra.Command{
 			return
 		}
 
-		payload := postOpts.Data
-		if postOpts.File != "" {
-			content, err := os.ReadFile(postOpts.File)
+		payload := putOpts.Data
+		if putOpts.File != "" {
+			content, err := os.ReadFile(putOpts.File)
 			if err != nil {
 				fmt.Println("Error reading file:", err)
 				return
@@ -47,7 +48,7 @@ var postCmd = &cobra.Command{
 			payload = string(content)
 		}
 
-		res, err := client.Post(endpoint, payload)
+		res, err := client.Put(endpoint, payload)
 		if err != nil {
 			cli.Error("Request failed:", err)
 			return
@@ -59,7 +60,7 @@ var postCmd = &cobra.Command{
 }
 
 func init() {
-	postCmd.Flags().StringVarP(&postOpts.Data, "data", "d", "", "JSON payload")
-	postCmd.Flags().StringVarP(&postOpts.File, "file", "f", "", "Payload from file")
-	postCmd.Flags().StringArrayVarP(&postOpts.FormFiles, "form-file", "F", []string{}, "Multipart form file (format: field=path/to/file)")
+	putCmd.Flags().StringVarP(&putOpts.Data, "data", "d", "", "JSON Payload")
+	putCmd.Flags().StringVarP(&putOpts.File, "file", "f", "", "Payload from file")
+	putCmd.Flags().StringArrayVarP(&putOpts.FormFiles, "form-file", "F", []string{}, "Multipart form file (format: field=path/to/file)")
 }
